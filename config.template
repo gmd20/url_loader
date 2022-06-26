@@ -1,0 +1,248 @@
+{
+  "log": {
+    // "access": "access.log",
+    // "error": "error.log",
+    "loglevel": "warning"
+  },
+
+  "dns": {
+    "hosts": {
+      "baidu.com": "127.0.0.1"
+    },
+    "servers": [
+      "127.0.0.1",
+      "119.29.29.29"
+    ]
+  },
+
+  "inbounds": [
+    {
+      "port": 1080,          // 监听端口
+      "listen": "0.0.0.0",
+      "protocol": "socks",   // 入口协议为 SOCKS5
+      "tag": "Socks-In",
+      "domainOverride": ["tls","http"],
+      "settings": {
+        "auth": "noauth"     // socks的认证设置，noauth 代表不认证
+      }
+    },
+    {
+      "port": 8000,          // http 代理的监听端口
+      "listen": "127.0.0.1",
+      "protocol": "http",
+      "tag": "Http-In",
+      "settings": { },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": [ "http", "tls" ]
+      }
+    }
+  ],
+  "outbounds": [
+    { {{if .ps }} // {{.ps}} {{end}}
+      "protocol": "{{.protocol}}",  // 出口协议
+      "tag": "Proxy",
+{{if eq .protocol "shadowsocks" }}
+      "settings": {
+        "servers": [
+          {
+            "address": "{{.address}}", // Shadowsocks 的服务器地址
+            "method": "{{.method}}", // Shadowsocks 的加密方式
+             // "ota": true, // 是否开启 OTA，true 为开启
+             "password": "{{.password}}", // Shadowsocks 的密码
+             "port": {{.port}}
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp"
+      }
+{{else if eq .protocol "trojan" }}
+      "settings": {
+        "servers": [
+         {
+           "address": "{{.address}}", // Shadowsocks 的服务器地址
+           "password": "{{.password}}", // Shadowsocks 的密码
+{{if .flow }}
+           "flow": "{{.flow}}"
+{{end}}
+           "port": {{.port}}
+          }
+        ]
+      },
+      "streamSettings": {
+{{if .security }}
+        "security": "{{.security}}",
+{{end}}
+{{if eq .security "tls"}}
+        "tlsSettings": {
+{{if .sni }}
+          "serverName": "{{.sni}}" // 换成你的域名
+{{end}}
+        },
+{{end}}
+{{if eq .security "xtls"}}
+        "xtlsSettings": {
+{{if .sni }}
+            "serverName": "{{.sni}}"  // 你的域名
+{{end}}
+        },
+{{end}}
+        "network": "tcp"
+     }
+{{else}}
+      "settings": {
+        "vnext": [
+          {
+            "address": "{{.address}}", // 服务器地址，请修改为你自己的服务器 IP 或域名
+            "port": {{.port}},         // 服务器端口
+            "users": [
+              {
+{{if .alterId }}
+                "alterId": {{.alterId}}, // 此处的值也应当与服务器相同
+{{end}}
+{{if eq .protocol "vless"}}
+{{if .encryption }}
+                "encryption": "{{.encryption}}",
+{{else}}
+                "encryption": "none",
+{{end}}
+                "level": 0,
+{{else if eq .protocol "vmess"}}
+{{if and (eq .network "ws")  (eq .security "tls")}}
+                "security": "none",
+                "level": 0,
+{{end}}
+{{end}}
+{{if .flow }}
+                "flow": "{{.flow}}"
+{{end}}
+                "id": "{{.id}}"  // 用户 ID，必须与服务器端配置相同
+
+              }
+            ]
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "{{.network}}",  // network: "tcp" | "kcp" | "ws" | "http" | "domainsocket" | "quic"| "xtls"
+{{if .security }}
+        "security": "{{.security}}",
+{{end}}
+        "tlsSettings": {
+{{if eq .type "http" }}
+          "header": {
+              "type": "http",
+              "request": {
+                  "path": [
+                      "{{.path}}" // 必须换成自定义的 PATH，需要和服务端的一致
+                  ]
+              }
+          },
+{{end}}
+{{if .sni }}
+          "serverName": "{{.sni}}" // 换成你的域名
+{{else if .host }}
+          "serverName": "{{.host}}" // 换成你的域名
+{{end}}
+
+
+        },
+        "xtlsSettings": {
+{{if .sni }}
+            "serverName": "{{.sni}}"  // 你的域名
+{{end}}
+        },
+        "wsSettings": { // websocket 设置
+{{if ne .host ""}}
+           "headers": {
+             "Host": "{{.host}}"
+           },
+{{end}}
+{{if .path }}
+          "path": "{{.path}}" // 与nginx配置相关
+{{end}}
+        },
+        "httpSettings": { // 此项是关于 HTTP/2 的设置
+{{if .path }}
+          "path": "{{.path}}"
+{{end}}
+        }
+      }
+{{end}}
+    },
+
+    {
+      "protocol": "freedom",  // 国内路由 的免代理访问设置
+      "tag": "Direct",        // 路由tag
+      "settings": {}
+    },
+    {
+      "protocol": "blackhole", // 黑名单
+      "tag": "Reject",
+      "settings": {
+        "response": {
+          "type": "http"
+        }
+      }
+    }
+  ],
+  "routing": {
+    "domainStrategy": "IPIfNonMatch", // 当域名没有匹配任何规则时，将域名解析成 IP（A 记录或 AAAA 记录）再次进行匹配
+    "domainMatcher": "mph",
+    "rules": [
+      {
+        "type": "field",
+        "outboundTag": "Direct",
+        "ip": [
+          "223.5.5.5/32",
+          "119.29.29.29/32",
+          "180.76.76.76/32",
+          "114.114.114.114/32",
+          "geoip:cn",
+          "geoip:private"
+        ]
+      },
+      {
+        "type": "field",
+        "outboundTag": "Proxy",
+        "ip": [
+          "1.1.1.1/32",
+          "1.0.0.1/32",
+          "8.8.8.8/32",
+          "8.8.4.4/32",
+          "geoip:us",
+          "geoip:ca",
+          "geoip:telegram"
+        ]
+      },
+      {
+        "type": "field",
+        "outboundTag": "Reject",
+        "domain": ["geosite:category-ads-all"]
+      },
+      {
+        "type": "field",
+        "outboundTag": "Direct",
+        "domain": [
+          "geosite:private",
+          "geosite:apple-cn",
+          "geosite:google-cn",
+          "geosite:tld-cn",
+          "geosite:category-games@cn"
+        ]
+      },
+      {
+        "type": "field",
+        "outboundTag": "Proxy",
+        "domain": ["geosite:geolocation-!cn"]
+      },
+      {
+        "type": "field",
+        "outboundTag": "Direct",
+        "domain": ["geosite:cn"]
+      }
+    ]
+  }
+
+}
