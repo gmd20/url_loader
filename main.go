@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/base64"
 	"encoding/json"
+	"flag"
 	"fmt"
 	neturl "net/url"
 	"os"
@@ -174,18 +175,21 @@ func jsonString(v any) string {
 	return ""
 }
 
-func startV2ray() (*exec.Cmd, error) {
+func startV2ray(verbose bool) (*exec.Cmd, error) {
 	v2rayCmd := exec.Command("sk.exe", "run", "config.json")
+	if verbose {
+		v2rayCmd.Stdout = os.Stdout
+		v2rayCmd.Stderr = os.Stderr
+	}
+
 	err := v2rayCmd.Start()
 	if err != nil {
 		fmt.Println("failed to start v2ray", err)
 		return nil, err
 	}
+
 	if v2rayCmd.Process != nil {
 		fmt.Println("v2ray was started. Pid =", v2rayCmd.Process.Pid)
-		go func() {
-			v2rayCmd.Wait()
-		}()
 	}
 
 	return v2rayCmd, nil
@@ -207,6 +211,10 @@ func stopV2ray(v2rayCmd *exec.Cmd) {
 
 func main() {
 	var v2rayCmd *exec.Cmd
+
+	var verbose bool
+	flag.BoolVar(&verbose, "v", true, "ouput logs of sk.exe")
+	flag.Parse()
 
 	tmpl := template.Must(template.New("outbound").Parse(configTemplate))
 	tmpl.Option("missingkey=zero") // map
@@ -382,6 +390,6 @@ func main() {
 		}
 
 		stopV2ray(v2rayCmd)
-		v2rayCmd, _ = startV2ray()
+		v2rayCmd, _ = startV2ray(verbose)
 	}
 }
