@@ -61,10 +61,10 @@
       "settings": {
         "servers": [
          {
-           "address": "{{.address}}", // Shadowsocks 的服务器地址
-           "password": "{{.password}}", // Shadowsocks 的密码
+           "address": "{{.address}}",
+           "password": "{{.password}}",
 {{if .flow }}
-           "flow": "{{.flow}}"
+           "flow": "{{.flow}}",
 {{end}}
            "port": {{.port}}
           }
