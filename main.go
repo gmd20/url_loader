@@ -9,7 +9,9 @@ import (
 	neturl "net/url"
 	"os"
 	"os/exec"
+	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"text/template"
 )
@@ -41,10 +43,10 @@ const configTemplate string = `
       "settings": {
         "servers": [
          {
-           "address": "{{.address}}", // Shadowsocks 的服务器地址
-           "password": "{{.password}}", // Shadowsocks 的密码
+           "address": "{{.address}}",
+           "password": "{{.password}}",
 {{if .flow }}
-           "flow": "{{.flow}}"
+           "flow": "{{.flow}}",
 {{end}}
            "port": {{.port}}
           }
@@ -171,6 +173,10 @@ func jsonString(v any) string {
 		return s
 	} else if n, ok := v.(json.Number); ok {
 		return n.String()
+	} else if n, ok := v.(float64); ok {
+		return strconv.Itoa(int(n))
+	} else {
+		fmt.Println("===jsonString unknown type:", reflect.TypeOf(v))
 	}
 	return ""
 }
