@@ -182,7 +182,7 @@ func jsonString(v any) string {
 }
 
 func startV2ray(verbose bool) (*exec.Cmd, error) {
-	v2rayCmd := exec.Command("sk.exe", "run", "config.json")
+	v2rayCmd := exec.Command("./sk", "run", "config.json")
 	if verbose {
 		v2rayCmd.Stdout = os.Stdout
 		v2rayCmd.Stderr = os.Stderr
@@ -234,6 +234,9 @@ func main() {
 	// 104.19.3.16	443	9e6ceeff-2546-3690-ac00-6fcdf31dec94	ws	/chcar	tls
 	// ingress-i1.onebox6.org	38701	79386685-16da-327c-9e14-aa6d702d86bc	ws	/hls/cctv5phd.m3u8
 	re2 := regexp.MustCompile(`\s*(\S+)\s+(\d+)\s+([\w-]+)\s+(ws|tcp)\s+(\S+)\s*(tls)*`)
+
+	// ss://YWVzLTEyOC1jZmI6UWF6RWRjVGdiMTU5QCQq@14.29.124.174:11050#%F0%9F%87%AD
+	re3 := regexp.MustCompile(`(.+)@(.+):(\d+)`)
 
 	for {
 		url := readUrl()
@@ -333,32 +336,62 @@ func main() {
 			before, after, found := strings.Cut(url, "#")
 			if found {
 				url = before
-				config["ps"] = after
+				comments, err := neturl.QueryUnescape(after)
+				if err != nil {
+					comments = after
+				}
+				config["ps"] = comments
 			}
 
-			b, err := base64.StdEncoding.DecodeString(url)
-			if err != nil {
-				fmt.Println("base64 decode error", err, url)
-				continue
-			}
-			url = string(b)
-			fmt.Println("===ss url===", url)
+			re3Fields := re3.FindStringSubmatch(url)
+			if re3Fields != nil && len(re3Fields) == 4 {
+				b, err := base64.StdEncoding.DecodeString(re3Fields[1])
+				if err != nil {
+					fmt.Println("base64 decode error", err, re3Fields[1])
+					continue
+				}
+				url = string(b)
+				method, pwd, pwdFound := strings.Cut(url, ":")
+				if !pwdFound {
+					fmt.Println("invalid method and pwd", url)
+					continue
+				}
 
-			fields := re.FindStringSubmatch(url)
-			if fields == nil {
-				fmt.Println("invalid ss url", url)
-				continue
+				if strings.HasSuffix(method, "cfb") {
+					fmt.Println(method, "is not supported")
+					continue
+				}
+
+				config["method"] = method
+				config["password"] = pwd
+				config["address"] = re3Fields[2]
+				config["port"] = re3Fields[3]
+			} else {
+				b, err := base64.StdEncoding.DecodeString(url)
+				if err != nil {
+					fmt.Println("base64 decode error", err, url)
+					continue
+				}
+				url = string(b)
+				fmt.Println("===ss url===", url)
+
+				fields := re.FindStringSubmatch(url)
+				if fields == nil {
+					fmt.Println("invalid ss url", url)
+					continue
+				}
+
+				if strings.HasSuffix(fields[1], "cfb") {
+					fmt.Println(fields[1], "is not supported")
+					continue
+				}
+
+				config["method"] = fields[1]
+				config["password"] = fields[2]
+				config["address"] = fields[3]
+				config["port"] = fields[4]
 			}
 
-			if strings.HasSuffix(fields[1], "cfb") {
-				fmt.Println(fields[1], "is not supported")
-				continue
-			}
-
-			config["method"] = fields[1]
-			config["password"] = fields[2]
-			config["address"] = fields[3]
-			config["port"] = fields[4]
 		} else {
 			fields := re2.FindStringSubmatch(url)
 			if fields == nil || (len(fields) != 6 && len(fields) != 7) {
