@@ -9,11 +9,15 @@ import (
 	neturl "net/url"
 	"os"
 	"os/exec"
+	"os/signal"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"text/template"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 // 配置参考
@@ -215,6 +219,34 @@ func stopV2ray(v2rayCmd *exec.Cmd) {
 	// cmd.Run()
 }
 
+func winEnableProxy(enable bool) {
+	var proxyEnable uint32 = 0
+	if enable {
+		proxyEnable = 1
+	}
+
+	key, err := registry.OpenKey(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings`, registry.ALL_ACCESS)
+	if err != nil {
+		fmt.Println("Failed to open registry key", err)
+		return
+	}
+	defer key.Close()
+
+	err = key.SetDWordValue("ProxyEnable", proxyEnable)
+	if err != nil {
+		fmt.Println("Failed to set registry ProxyEnable", err)
+		return
+	}
+
+	/*
+		  err = key.SetStringValue("ProxyServer", "http://127.0.0.1:8000")
+			if err != nil {
+				fmt.Println("Failed to set registryProxyServer", err)
+		    return
+			}
+	*/
+}
+
 func main() {
 	var v2rayCmd *exec.Cmd
 
@@ -238,9 +270,33 @@ func main() {
 	// ss://YWVzLTEyOC1jZmI6UWF6RWRjVGdiMTU5QCQq@14.29.124.174:11050#%F0%9F%87%AD
 	re3 := regexp.MustCompile(`(.+)@(.+):(\d+)`)
 
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP,
+		syscall.SIGQUIT)
+
+	go func() {
+		for s := range signalChan {
+			switch s {
+			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+				winEnableProxy(false)
+				os.Exit(0)
+			}
+		}
+	}()
+
 	for {
 		url := readUrl()
 		var config map[string]string = make(map[string]string)
+
+		if url == "e" {
+			winEnableProxy(true)
+			fmt.Println("System proxy is enabled")
+			continue
+		} else if url == "d" {
+			winEnableProxy(false)
+			fmt.Println("System proxy is disabled")
+			continue
+		}
 
 		if strings.HasPrefix(url, "vmess://") {
 			url = strings.TrimPrefix(url, "vmess://")
