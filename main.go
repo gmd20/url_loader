@@ -290,10 +290,14 @@ func main() {
 
 		if url == "e" {
 			winEnableProxy(true)
+			stopV2ray(v2rayCmd)
+			v2rayCmd, _ = startV2ray(verbose)
 			fmt.Println("System proxy is enabled")
 			continue
 		} else if url == "d" {
 			winEnableProxy(false)
+			stopV2ray(v2rayCmd)
+			v2rayCmd = nil
 			fmt.Println("System proxy is disabled")
 			continue
 		}
