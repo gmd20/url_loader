@@ -19,7 +19,7 @@
     {
       "port": 1080,          // 监听端口
       "listen": "0.0.0.0",
-      "protocol": "socks",   // 入口协议为 SOCKS5
+      "protocol": "socks",    // http -入口为http代理, socks -入口协议为 SOCKS5, windows系统默认代理模式很奇怪没法设置哪一个。如果看到“ unknown socks version 67”的错误，这里就设置为http吧
       "tag": "Socks-In",
       "domainOverride": ["tls","http"],
       "settings": {
