@@ -164,7 +164,7 @@ func readUrl() string {
 	fmt.Printf("input url>")
 	reader := bufio.NewReader(os.Stdin)
 	cmd, _ = reader.ReadString('\n')
-	cmd = strings.TrimSpace(cmd)
+	cmd = strings.Trim(cmd, "\r\n\t ")
 
 	return cmd
 }
@@ -179,6 +179,8 @@ func jsonString(v any) string {
 		return n.String()
 	} else if n, ok := v.(float64); ok {
 		return strconv.Itoa(int(n))
+	} else if b, ok := v.(bool); ok {
+		return strconv.FormatBool(b)
 	} else {
 		fmt.Println("===jsonString unknown type:", reflect.TypeOf(v))
 	}
@@ -248,11 +250,24 @@ func winEnableProxy(enable bool) {
 }
 
 func main() {
-	var v2rayCmd *exec.Cmd
-
 	var verbose bool
 	flag.BoolVar(&verbose, "v", true, "ouput logs of sk.exe")
 	flag.Parse()
+
+	var v2rayCmd *exec.Cmd
+	var urls []string
+	var urlsIndex int
+
+	urlsContent, err := os.ReadFile("urls.txt")
+	if err == nil {
+		for _, url := range strings.Split(string(urlsContent), "\n") {
+			url = strings.Trim(url, "\r\n\t ")
+			if len(url) > 0 {
+				urls = append(urls, url)
+			}
+		}
+		fmt.Println("load", len(urls), "urls")
+	}
 
 	tmpl := template.Must(template.New("outbound").Parse(configTemplate))
 	tmpl.Option("missingkey=zero") // map
@@ -300,6 +315,21 @@ func main() {
 			v2rayCmd = nil
 			fmt.Println("System proxy is disabled")
 			continue
+		} else if url == "n" {
+			if len(urls) == 0 {
+				fmt.Println("no data from urls.txt")
+				continue
+			}
+
+			urlsIndex++
+			n := urlsIndex % len(urls)
+			url = urls[n]
+			fmt.Println("===", n, "===", url)
+		} else if n, err := strconv.Atoi(url); err == nil {
+			n := n % len(urls)
+			urlsIndex = n
+			url = urls[n]
+			fmt.Println("===", n, "===", url)
 		}
 
 		if strings.HasPrefix(url, "vmess://") {
