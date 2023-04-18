@@ -19,7 +19,7 @@
     {
       "port": 1080,          // 监听端口
       "listen": "0.0.0.0",
-      "protocol": "socks",    // http -入口为http代理, socks -入口协议为 SOCKS5, windows系统默认代理模式很奇怪没法设置哪一个。如果看到“ unknown socks version 67”的错误，这里就设置为http吧
+      "protocol": "http",   // http -入口为http代理, socks -入口协议为 SOCKS5, windows系统默认代理模式很奇怪没法设置哪一个。如果看到“ unknown socks version 67”的错误，这里就设置为http吧
       "tag": "Socks-In",
       "domainOverride": ["tls","http"],
       "settings": {
@@ -110,7 +110,7 @@
                 "level": 0,
 {{else if eq .protocol "vmess"}}
 {{if and (eq .network "ws")  (eq .security "tls")}}
-                "security": "none",
+                "security": "none", // security: "none" | "auto" | "tls"
                 "level": 0,
 {{end}}
 {{end}}
@@ -127,7 +127,16 @@
       "streamSettings": {
         "network": "{{.network}}",  // network: "tcp" | "kcp" | "ws" | "http" | "domainsocket" | "quic"| "xtls"
 {{if .security }}
-        "security": "{{.security}}",
+{{if eq .security "tls"}}
+      "security": "tls", // security: "none" | "tls"
+{{else if eq .security "none"}}
+      "security": "none", // security: "none" | "tls"
+{{else if eq .network "ws"}}
+{{if eq .port "80"}}
+        "security": "none", // security: "none" | "tls"
+{{else}} "security": "tls", // security: "none" | "tls"
+{{end}}
+{{end}}
 {{end}}
         "tlsSettings": {
 {{if eq .type "http" }}
