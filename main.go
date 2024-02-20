@@ -336,7 +336,7 @@ func main() {
 			url = strings.TrimPrefix(url, "vmess://")
 			config["protocol"] = "vmess"
 
-			b, err := base64.URLEncoding.DecodeString(url)
+			b, err := base64.RawURLEncoding.DecodeString(url)
 			if err != nil {
 				fmt.Println("base64 decode error", err, url)
 				continue
@@ -435,7 +435,7 @@ func main() {
 
 			re3Fields := re3.FindStringSubmatch(url)
 			if re3Fields != nil && len(re3Fields) == 4 {
-				b, err := base64.URLEncoding.DecodeString(re3Fields[1])
+				b, err := base64.RawURLEncoding.DecodeString(re3Fields[1])
 				if err != nil {
 					fmt.Println("base64 decode error", err, re3Fields[1])
 					continue
@@ -457,7 +457,7 @@ func main() {
 				config["address"] = re3Fields[2]
 				config["port"] = re3Fields[3]
 			} else {
-				b, err := base64.URLEncoding.DecodeString(url)
+				b, err := base64.RawURLEncoding.DecodeString(url)
 				if err != nil {
 					fmt.Println("base64 decode error", err, url)
 					continue
