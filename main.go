@@ -249,6 +249,23 @@ func winEnableProxy(enable bool) {
 	*/
 }
 
+func base64Decode(s string) ([]byte, error) {
+	b, err := base64.RawURLEncoding.DecodeString(s)
+	if err == nil {
+		return b, err
+	}
+	b, err = base64.StdEncoding.DecodeString(s)
+	if err == nil {
+		return b, err
+	}
+	b, err = base64.URLEncoding.DecodeString(s)
+	if err == nil {
+		return b, err
+	}
+	b, err = base64.RawStdEncoding.DecodeString(s)
+	return b, err
+}
+
 func main() {
 	var verbose bool
 	flag.BoolVar(&verbose, "v", true, "ouput logs of sk.exe")
@@ -336,7 +353,7 @@ func main() {
 			url = strings.TrimPrefix(url, "vmess://")
 			config["protocol"] = "vmess"
 
-			b, err := base64.RawURLEncoding.DecodeString(url)
+			b, err := base64Decode(url)
 			if err != nil {
 				fmt.Println("base64 decode error", err, url)
 				continue
@@ -435,7 +452,7 @@ func main() {
 
 			re3Fields := re3.FindStringSubmatch(url)
 			if re3Fields != nil && len(re3Fields) == 4 {
-				b, err := base64.RawURLEncoding.DecodeString(re3Fields[1])
+				b, err := base64Decode(re3Fields[1])
 				if err != nil {
 					fmt.Println("base64 decode error", err, re3Fields[1])
 					continue
@@ -457,7 +474,7 @@ func main() {
 				config["address"] = re3Fields[2]
 				config["port"] = re3Fields[3]
 			} else {
-				b, err := base64.RawURLEncoding.DecodeString(url)
+				b, err := base64Decode(url)
 				if err != nil {
 					fmt.Println("base64 decode error", err, url)
 					continue
