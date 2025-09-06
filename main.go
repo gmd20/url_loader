@@ -16,8 +16,6 @@ import (
 	"strings"
 	"syscall"
 	"text/template"
-
-	"golang.org/x/sys/windows/registry"
 )
 
 // 配置参考
@@ -188,7 +186,7 @@ func jsonString(v any) string {
 }
 
 func startV2ray(verbose bool) (*exec.Cmd, error) {
-	v2rayCmd := exec.Command("./sk", "run", "config.json")
+	v2rayCmd := exec.Command("./xray", "run", "config.json")
 	if verbose {
 		v2rayCmd.Stdout = os.Stdout
 		v2rayCmd.Stderr = os.Stderr
@@ -219,34 +217,6 @@ func stopV2ray(v2rayCmd *exec.Cmd) {
 	// double kill
 	// cmd := exec.Command("killall", "sk.exe")
 	// cmd.Run()
-}
-
-func winEnableProxy(enable bool) {
-	var proxyEnable uint32 = 0
-	if enable {
-		proxyEnable = 1
-	}
-
-	key, err := registry.OpenKey(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings`, registry.ALL_ACCESS)
-	if err != nil {
-		fmt.Println("Failed to open registry key", err)
-		return
-	}
-	defer key.Close()
-
-	err = key.SetDWordValue("ProxyEnable", proxyEnable)
-	if err != nil {
-		fmt.Println("Failed to set registry ProxyEnable", err)
-		return
-	}
-
-	/*
-		  err = key.SetStringValue("ProxyServer", "http://127.0.0.1:8000")
-			if err != nil {
-				fmt.Println("Failed to set registryProxyServer", err)
-		    return
-			}
-	*/
 }
 
 func base64Decode(s string) ([]byte, error) {
@@ -310,7 +280,7 @@ func main() {
 		for s := range signalChan {
 			switch s {
 			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-				winEnableProxy(false)
+				EnableProxy(false)
 				os.Exit(0)
 			}
 		}
@@ -321,13 +291,13 @@ func main() {
 		var config map[string]string = make(map[string]string)
 
 		if url == "e" {
-			winEnableProxy(true)
+			EnableProxy(true)
 			stopV2ray(v2rayCmd)
 			v2rayCmd, _ = startV2ray(verbose)
 			fmt.Println("System proxy is enabled")
 			continue
 		} else if url == "d" {
-			winEnableProxy(false)
+			EnableProxy(false)
 			stopV2ray(v2rayCmd)
 			v2rayCmd = nil
 			fmt.Println("System proxy is disabled")

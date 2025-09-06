@@ -125,7 +125,7 @@
         ]
       },
       "streamSettings": {
-        "network": "{{.network}}",  // network: "tcp" | "kcp" | "ws" | "http" | "domainsocket" | "quic"| "xtls"
+        "network": "{{.network}}",  // network: "xhttp" | "tcp" | "kcp" | "ws" | "http" | "domainsocket" | "quic"| "xtls"
 {{if .security }}
 {{if eq .security "tls"}}
       "security": "tls", // security: "none" | "tls"
@@ -162,11 +162,19 @@
             "serverName": "{{.sni}}"  // 你的域名
 {{end}}
         },
+
+        "xhttpSettings": { // xhttp 设置
+{{if ne .host ""}}
+           "host": "{{.host}}",
+{{end}}
+{{if .path }}
+          "path": "{{.path}}" // 与nginx配置相关
+{{end}}
+        },
+
         "wsSettings": { // websocket 设置
 {{if ne .host ""}}
-           "headers": {
-             "Host": "{{.host}}"
-           },
+           "host": "{{.host}}",
 {{end}}
 {{if .path }}
           "path": "{{.path}}" // 与nginx配置相关
