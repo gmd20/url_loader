@@ -10,6 +10,7 @@
       "baidu.com": "127.0.0.1"
     },
     "servers": [
+      "https://dns.alidns.com/dns-query",
       "127.0.0.1",
       "119.29.29.29"
     ]
@@ -63,31 +64,31 @@
          {
            "address": "{{.address}}",
            "password": "{{.password}}",
-{{if .flow }}
+        {{if .flow }}
            "flow": "{{.flow}}",
-{{end}}
+        {{end}}
            "port": {{.port}}
           }
         ]
       },
       "streamSettings": {
-{{if .security }}
+      {{if .security }}
         "security": "{{.security}}",
-{{end}}
-{{if eq .security "tls"}}
+      {{end}}
+    {{if eq .security "tls"}}
         "tlsSettings": {
-{{if .sni }}
+          {{if .sni }}
           "serverName": "{{.sni}}" // 换成你的域名
-{{end}}
+          {{end}}
         },
-{{end}}
-{{if eq .security "xtls"}}
+    {{end}}
+    {{if eq .security "xtls"}}
         "xtlsSettings": {
-{{if .sni }}
-            "serverName": "{{.sni}}"  // 你的域名
-{{end}}
+          {{if .sni }}
+              "serverName": "{{.sni}}"  // 你的域名
+          {{end}}
         },
-{{end}}
+    {{end}}
         "network": "tcp"
      }
 {{else}}
@@ -98,92 +99,98 @@
             "port": {{.port}},         // 服务器端口
             "users": [
               {
-{{if .alterId }}
+              {{if .alterId }}
                 "alterId": {{.alterId}}, // 此处的值也应当与服务器相同
-{{end}}
-{{if eq .protocol "vless"}}
-{{if .encryption }}
+              {{end}}
+          {{if eq .protocol "vless"}}
+              {{if .encryption }}
                 "encryption": "{{.encryption}}",
-{{else}}
+              {{else}}
                 "encryption": "none",
-{{end}}
+              {{end}}
                 "level": 0,
-{{else if eq .protocol "vmess"}}
-{{if and (eq .network "ws")  (eq .security "tls")}}
+          {{else if eq .protocol "vmess"}}
+            {{if and (eq .network "ws")  (eq .security "tls")}}
                 "security": "none", // security: "none" | "auto" | "tls"
                 "level": 0,
-{{end}}
-{{end}}
-{{if .flow }}
-                "flow": "{{.flow}}"
-{{end}}
+            {{end}}
+          {{end}}
+              {{if .flow }}
+                "flow": "{{.flow}}",
+              {{end}}
                 "id": "{{.id}}"  // 用户 ID，必须与服务器端配置相同
-
               }
             ]
           }
         ]
       },
       "streamSettings": {
-        "network": "{{.network}}",  // network: "xhttp" | "tcp" | "kcp" | "ws" | "http" | "domainsocket" | "quic"| "xtls"
-{{if .security }}
-{{if eq .security "tls"}}
-      "security": "tls", // security: "none" | "tls"
-{{else if eq .security "none"}}
-      "security": "none", // security: "none" | "tls"
-{{else if eq .network "ws"}}
-{{if eq .port "80"}}
-        "security": "none", // security: "none" | "tls"
-{{else}} "security": "tls", // security: "none" | "tls"
-{{end}}
-{{end}}
-{{end}}
-        "tlsSettings": {
-{{if eq .type "http" }}
-          "header": {
-              "type": "http",
-              "request": {
-                  "path": [
-                      "{{.path}}" // 必须换成自定义的 PATH，需要和服务端的一致
-                  ]
-              }
-          },
-{{end}}
-{{if .sni }}
+        "network": "{{.network}}",  // network:  "xhttp" | "tcp" | "kcp" | "ws" | "http" | "domainsocket" | "quic"| "xtls"
+      {{if .security }}
+        {{if eq .security "tls"}}
+          "security": "tls", // security: "none" | "tls" | "reality"
+        {{else if eq .security "reality"}}
+          "security": "reality", // security: "none" | "tls" | "reality"
+        {{else if eq .security "none"}}
+          "security": "none", // security: "none" | "tls" | "reality"
+        {{else if eq .network "ws"}}
+          {{if eq .port "80"}}
+           "security": "none", // security: "none" | "tls" | "reality"
+          {{else}}
+           "security": "tls",  // security: "none" | "tls" | "reality"
+          {{end}}
+        {{end}}
+      {{end}}
+        "realitySettings": {
+          "publicKey": "{{.pbk}}",
+          "shortId": "{{.sid}}",
+          {{if .spx }}
+          "spiderX": "{{.spx}}",
+          {{end}}
           "serverName": "{{.sni}}" // 换成你的域名
-{{else if .host }}
-          "serverName": "{{.host}}" // 换成你的域名
-{{end}}
-
-
+        },
+        "tlsSettings": {
+          {{if eq .type "http" }}
+              "header": {
+                  "type": "http",
+                  "request": {
+                      "path": [
+                          "{{.path}}" // 必须换成自定义的 PATH，需要和服务端的一致
+                      ]
+                  }
+              },
+          {{end}}
+          {{if .sni }}
+              "serverName": "{{.sni}}" // 换成你的域名
+          {{else if .host }}
+              "serverName": "{{.host}}" // 换成你的域名
+          {{end}}
         },
         "xtlsSettings": {
-{{if .sni }}
-            "serverName": "{{.sni}}"  // 你的域名
-{{end}}
+            {{if .sni }}
+              "serverName": "{{.sni}}"  // 你的域名
+            {{end}}
         },
-
         "xhttpSettings": { // xhttp 设置
-{{if ne .host ""}}
-           "host": "{{.host}}",
-{{end}}
-{{if .path }}
+          {{if ne .host ""}}
+            "host": "{{.host}}",
+          {{end}}
+          {{if .path }}
           "path": "{{.path}}" // 与nginx配置相关
-{{end}}
+          {{end}}
         },
-
         "wsSettings": { // websocket 设置
-{{if ne .host ""}}
-           "host": "{{.host}}",
-{{end}}
-{{if .path }}
-          "path": "{{.path}}" // 与nginx配置相关
-{{end}}
+          {{if ne .host ""}}
+            "host": "{{.host}}",
+          {{end}}
+          {{if .path }}
+            "path": "{{.path}}" // 与nginx配置相关
+          {{end}}
         },
         "httpSettings": { // 此项是关于 HTTP/2 的设置
-{{if .path }}
-          "path": "{{.path}}"
-{{end}}
+          {{if .path }}
+            "path": "{{.path}}"
+          {{end}}
         }
       }
 {{end}}
@@ -212,6 +219,10 @@
         "type": "field",
         "outboundTag": "Direct",
         "ip": [
+          "192.168.0.0/16",
+          "127.0.0.1/16",
+          "10.0.0.0/8",
+          "172.16.0.0/16",
           "223.5.5.5/32",
           "119.29.29.29/32",
           "180.76.76.76/32",
@@ -261,5 +272,4 @@
       }
     ]
   }
-
 }
